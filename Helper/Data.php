@@ -1,19 +1,11 @@
 <?php
-/**
- * DISCLAIMER
- * Do not edit or add to this file if you wish to upgrade this module to newer
- * versions in the future.
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
- * @copyright 2019 Smile
- * @license   Open Software License ("OSL") v. 3.0
- */
+
+declare(strict_types=1);
 
 namespace Smile\ProductLabel\Helper;
 
 use Magento\Catalog\Api\Data\ProductInterface;
+use Magento\Catalog\Model\Product;
 use Magento\Framework\Api\FilterBuilder;
 use Magento\Framework\Api\SearchCriteria;
 use Magento\Framework\Api\SearchCriteriaBuilder;
@@ -26,50 +18,22 @@ use Smile\ProductLabel\Api\ProductLabelRepositoryInterface;
 
 /**
  * Product Label Data helper
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
  */
 class Data extends AbstractHelper
 {
-    /**
-     * @var ProductLabelRepositoryInterface
-     */
-    protected $plabelRepository;
+    protected ProductLabelRepositoryInterface $productLabelRepository;
+    protected FilterBuilder $filterBuilder;
+    protected SortOrderBuilder $sortOrderBuilder;
+    protected SearchCriteriaBuilder $searchCriteriaBuilder;
 
-    /**
-     * @var FilterBuilder
-     */
-    protected $filterBuilder;
-
-    /**
-     * @var SortOrderBuilder
-     */
-    protected $sortOrderBuilder;
-
-    /**
-     * @var SearchCriteriaBuilder
-     */
-    protected $searchCriteriaBuilder;
-
-    /**
-     * Data constructor.
-     *
-     * @param Context                         $context               Context
-     * @param ProductLabelRepositoryInterface $plabelRepository      Product Label Repository
-     * @param FilterBuilder                   $filterBuilder         Filter Builder
-     * @param SortOrderBuilder                $sortOrderBuilder      Sort Order Builder
-     * @param SearchCriteriaBuilder           $searchCriteriaBuilder Search Criteria Builder
-     */
     public function __construct(
         Context $context,
-        ProductLabelRepositoryInterface $plabelRepository,
+        ProductLabelRepositoryInterface $productLabelRepository,
         FilterBuilder $filterBuilder,
         SortOrderBuilder $sortOrderBuilder,
         SearchCriteriaBuilder $searchCriteriaBuilder
     ) {
-        $this->plabelRepository      = $plabelRepository;
+        $this->productLabelRepository      = $productLabelRepository;
         $this->filterBuilder         = $filterBuilder;
         $this->sortOrderBuilder      = $sortOrderBuilder;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
@@ -78,36 +42,37 @@ class Data extends AbstractHelper
     }
 
     /**
-     * @param ProductInterface $product The product
+     * Get product label ids
      *
      * @return int[]
      */
-    public function getProductLabelIds(ProductInterface $product)
+    public function getProductLabelIds(ProductInterface $product): array
     {
-        $plabelIds = $product->getSmileProductLabelIds();
-        if (!is_array($plabelIds)) {
-            $plabelIds = explode(',', $plabelIds);
+        /** @var Product $product */
+        $productLabelIds = $product->getData('smile_product_label_ids');
+        if (!is_array($productLabelIds)) {
+            $productLabelIds = explode(',', (string) $productLabelIds);
         }
 
-        foreach ($plabelIds as $key => $value) {
-            $plabelIds[$key] = (int) $value;
+        foreach ($productLabelIds as $key => $value) {
+            $productLabelIds[$key] = (int) $value;
         }
 
-        return $plabelIds;
+        return $productLabelIds;
     }
 
     /**
-     * @param int[] $plabelIds Product Label ids
+     * Get search criteria on product label ids
      *
-     * @return SearchCriteria
+     * @param int[] $productLabelIds Product Label ids
      */
-    public function getSearchCriteriaOnProductLabelIds($plabelIds)
+    public function getSearchCriteriaOnProductLabelIds(array $productLabelIds): SearchCriteria
     {
         $filters   = [];
         $filters[] = $this->filterBuilder
             ->setField(ProductLabelInterface::PRODUCTLABEL_ID)
             ->setConditionType('in')
-            ->setValue($plabelIds)
+            ->setValue($productLabelIds)
             ->create();
         $this->searchCriteriaBuilder->addFilters($filters);
 
@@ -122,15 +87,17 @@ class Data extends AbstractHelper
     }
 
     /**
-     * @param ProductInterface $product The Product
+     * Get product labels
      *
      * @return ProductLabelInterface[]
      */
-    public function getProductPLabels(ProductInterface $product)
+    public function getProductLabels(ProductInterface $product): array
     {
-        $plabelIds      = $this->getProductLabelIds($product);
-        $searchCriteria = $this->getSearchCriteriaOnProductLabelIds($plabelIds);
+        $productLabelIds = $this->getProductLabelIds($product);
+        $searchCriteria = $this->getSearchCriteriaOnProductLabelIds($productLabelIds);
 
-        return $this->plabelRepository->getList($searchCriteria)->getItems();
+        /** @var ProductLabelInterface[] $items */
+        $items =  $this->productLabelRepository->getList($searchCriteria)->getItems();
+        return $items;
     }
 }

@@ -1,80 +1,59 @@
 <?php
-/**
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade this module to newer
- * versions in the future.
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
- * @copyright 2019 Smile
- * @license   Open Software License ("OSL") v. 3.0
- */
+
+declare(strict_types=1);
 
 namespace Smile\ProductLabel\Ui\Component\ProductLabel\Form\Modifier;
+
+use Magento\Catalog\Api\ProductAttributeRepositoryInterface;
+use Magento\Eav\Api\Data\AttributeInterface;
+use Magento\Eav\Model\Entity\Attribute\AbstractAttribute;
+use Magento\Ui\DataProvider\Modifier\ModifierInterface;
+use Smile\ProductLabel\Model\ProductLabel\Locator\LocatorInterface;
 
 /**
  * Class AttributeOptions
  * Smile Product Label edit form data provider modifier :
  *
  * Used to populate "option_id" field according to current value of "attribute_id" for current product label.
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
  */
-class AttributeOptions implements \Magento\Ui\DataProvider\Modifier\ModifierInterface
+class AttributeOptions implements ModifierInterface
 {
-    /**
-     * @var \Smile\ProductLabel\Model\ProductLabel\Locator\LocatorInterface
-     */
-    private $locator;
+    private LocatorInterface $locator;
+    private ProductAttributeRepositoryInterface $attributeRepository;
 
-    /**
-     * @var \Magento\Catalog\Api\ProductAttributeRepositoryInterface
-     */
-    private $attributeRepository;
-
-    /**
-     * AttributeOptions constructor.
-     *
-     * @param \Smile\ProductLabel\Model\ProductLabel\Locator\LocatorInterface $locator             Label Locatory
-     * @param \Magento\Catalog\Api\ProductAttributeRepositoryInterface        $attributeRepository Attribute Repository
-     */
     public function __construct(
-        \Smile\ProductLabel\Model\ProductLabel\Locator\LocatorInterface $locator,
-        \Magento\Catalog\Api\ProductAttributeRepositoryInterface $attributeRepository
+        LocatorInterface $locator,
+        ProductAttributeRepositoryInterface $attributeRepository
     ) {
         $this->locator             = $locator;
         $this->attributeRepository = $attributeRepository;
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
-    public function modifyData(array $data)
+    public function modifyData(array $data): array
     {
         return $data;
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
-    public function modifyMeta(array $meta)
+    public function modifyMeta(array $meta): array
     {
         $productLabel = $this->locator->getProductLabel();
 
         $options = [];
-        if ($productLabel && $productLabel->getAttributeId()) {
-            $options = $this->getAttributeOptions((int) $productLabel->getAttributeId());
+        if ($productLabel->getAttributeId()) {
+            $options = $this->getAttributeOptions($productLabel->getAttributeId());
         }
 
         $meta['general']['children']['option_id']['arguments']['data']['options']    = $options;
         $meta['general']['children']['option_label']['arguments']['data']['options'] = $options;
 
-        $isNew          = (!$productLabel || !$productLabel->getId());
-        $optionFieldVisible = $isNew && $productLabel && $productLabel->getAttributeId();
+        $isNew = !$productLabel->getId();
+        $optionFieldVisible = $isNew && $productLabel->getAttributeId();
 
         $meta['general']['children']['option_id']['arguments']['data']['config']['disabled'] = !$isNew;
         $meta['general']['children']['option_id']['arguments']['data']['config']['visible']  = $optionFieldVisible;
@@ -87,18 +66,20 @@ class AttributeOptions implements \Magento\Ui\DataProvider\Modifier\ModifierInte
 
     /**
      * Retrieve attribute options for a given attribute Id.
-     *
-     * @param int $attributeId The attribute Id
-     *
-     * @return array
      */
-    private function getAttributeOptions($attributeId)
+    private function getAttributeOptions(int $attributeId): array
     {
+        /** @var string $attributeId */
         $attribute = $this->attributeRepository->get($attributeId);
         $options   = [];
 
-        if ($attribute && $attribute->getAttributeId() && $attribute->getSource()) {
-            $options = $attribute->getSource()->getAllOptions(false);
+        /** @var  AbstractAttribute $attribute */
+        $source = $attribute->getSource();
+
+        /** @var AttributeInterface $attribute */
+        $attributeId = $attribute->getAttributeId();
+        if ($attributeId) {
+            $options = $source->getAllOptions();
         }
 
         return $options;

@@ -1,34 +1,24 @@
 <?php
-/**
- * DISCLAIMER
- * Do not edit or add to this file if you wish to upgrade this module to newer
- * versions in the future.
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
- * @copyright 2019 Smile
- * @license   Open Software License ("OSL") v. 3.0
- */
+
+declare(strict_types=1);
+
 namespace Smile\ProductLabel\Model\ResourceModel\ProductLabel\Store;
+
+use Magento\Framework\EntityManager\Operation\ExtensionInterface;
+use Smile\ProductLabel\Model\ResourceModel\ProductLabel;
 
 /**
  * Virtual Attribute store relation read handler.
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
  */
-class SaveHandler implements \Magento\Framework\EntityManager\Operation\ExtensionInterface
+class SaveHandler implements ExtensionInterface
 {
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function execute($entity, $arguments = [])
     {
-        /** @var \Smile\ProductLabel\Model\ResourceModel\ProductLabel $resource */
+        /** @var ProductLabel $resource */
         $resource = $entity->getResource();
-
         $resource->saveStoreRelation($entity);
 
         return $entity;

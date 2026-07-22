@@ -1,85 +1,56 @@
 <?php
-/**
- * DISCLAIMER
- * Do not edit or add to this file if you wish to upgrade this module to newer
- * versions in the future.
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
- * @copyright 2019 Smile
- * @license   Open Software License ("OSL") v. 3.0
- */
+
+declare(strict_types=1);
 
 namespace Smile\ProductLabel\Api;
 
-/**
- * Product Label Repository Interface
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
- */
+use Magento\Framework\Api\SearchCriteriaInterface;
+use Magento\Framework\Api\SearchResults;
+use Magento\Framework\Exception\CouldNotDeleteException;
+use Magento\Framework\Exception\NoSuchEntityException;
+use Smile\ProductLabel\Api\Data\ProductLabelInterface;
+
 interface ProductLabelRepositoryInterface
 {
     /**
      * Retrieve a product label by its id
      *
-     * @param int $objectId Id of the product label
-     *
-     * @return \Smile\ProductLabel\Api\Data\ProductLabelInterface
-     * @throws \Magento\Framework\Exception\NoSuchEntityException
+     * @throws NoSuchEntityException
      */
-    public function getById($objectId);
+    public function getById(int $objectId): ProductLabelInterface;
 
     /**
      * Retrieve a product label by its identifier.
      *
-     * @param string $objectIdentifier Identifier of the product label
-     *
-     * @return \Smile\ProductLabel\Api\Data\ProductLabelInterface
-     * @throws \Magento\Framework\Exception\NoSuchEntityException
+     * @throws NoSuchEntityException
      */
-    public function getByIdentifier($objectIdentifier);
+    public function getByIdentifier(string $objectIdentifier): ProductLabelInterface;
 
     /**
      * Retrieve list of product label
-     *
-     * @param \Magento\Framework\Api\SearchCriteriaInterface $searchCriteria Search criteria
-     *
-     * @return \Smile\ProductLabel\Api\Data\ProductLabelInterface
      */
-    public function getList(\Magento\Framework\Api\SearchCriteriaInterface $searchCriteria);
+    public function getList(?SearchCriteriaInterface $searchCriteria): SearchResults;
 
     /**
      * Save a product label
      *
-     * @param \Smile\ProductLabel\Api\Data\ProductLabelInterface $plabel product label
-     *
-     * @return \Smile\ProductLabel\Api\Data\ProductLabelInterface
-     * @throws \Magento\Framework\Exception\NoSuchEntityException
+     * @throws NoSuchEntityException
      */
-    public function save(\Smile\ProductLabel\Api\Data\ProductLabelInterface $plabel);
+    public function save(ProductLabelInterface $label): ProductLabelInterface;
 
     /**
      * Delete a product label by given ID
      *
-     * @param int $plabelId Id of the product label.
-     *
-     * @return bool
-     * @throws \Magento\Framework\Exception\NoSuchEntityException
-     * @throws \Magento\Framework\Exception\CouldNotDeleteException
+     * @throws NoSuchEntityException
+     * @throws CouldNotDeleteException
      */
-    public function deleteById($plabelId);
+    public function deleteById(int $productLabelId): bool;
 
     /**
      * Delete a product label by its identifier.
      *
-     * @param string $plabel Identifier of the product label
-     *
-     * @return bool
-     * @throws \Magento\Framework\Exception\NoSuchEntityException
-     * @throws \Magento\Framework\Exception\CouldNotDeleteException
+     * @throws NoSuchEntityException
+     * @throws CouldNotDeleteException
      */
-    public function deleteByIdentifier($plabel);
+    public function deleteByIdentifier(string $label): bool;
 }

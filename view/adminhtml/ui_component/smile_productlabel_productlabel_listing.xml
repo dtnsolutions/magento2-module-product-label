@@ -1,18 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-/**
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade this module to newer
- * versions in the future.
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
- * @copyright 2019 Smile
- * @license   Open Software License ("OSL") v. 3.0
- */
--->
 <listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
 
     <argument name="data" xsi:type="array">
@@ -39,6 +25,7 @@
         <settings>
             <storageConfig>
                 <param name="indexField" xsi:type="string">id</param>
+                <param name="cacheRequests" xsi:type="boolean">false</param>
             </storageConfig>
             <updateUrl path="mui/index/render"/>
         </settings>
