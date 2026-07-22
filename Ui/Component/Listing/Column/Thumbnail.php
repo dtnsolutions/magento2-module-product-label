@@ -1,49 +1,31 @@
 <?php
-/**
- * DISCLAIMER
- * Do not edit or add to this file if you wish to upgrade this module to newer
- * versions in the future.
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
- * @copyright 2019 Smile
- * @license   Open Software License ("OSL") v. 3.0
- */
+
+declare(strict_types=1);
 
 namespace Smile\ProductLabel\Ui\Component\Listing\Column;
 
-use Magento\Framework\View\Element\UiComponentFactory;
+use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
+use Magento\Framework\View\Element\UiComponentFactory;
+use Magento\Ui\Component\Listing\Columns\Column;
+use Smile\ProductLabel\Model\ImageLabel\Image;
 
 /**
- * Class Thumbnail
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
+ * Class Thumbnail for Ui component
  */
-class Thumbnail extends \Magento\Ui\Component\Listing\Columns\Column
+class Thumbnail extends Column
 {
-    const NAME = 'thumbnail';
+    public const NAME = 'thumbnail';
+    public const ALT_FIELD = 'name';
 
-    const ALT_FIELD = 'name';
+    protected Image $imageHelper;
+    protected UrlInterface $urlBuilder;
 
-    /**
-     * Thumbnail constructor.
-     *
-     * @param ContextInterface                           $context            Context
-     * @param UiComponentFactory                         $uiComponentFactory UI Component Factory
-     * @param \Smile\ProductLabel\Model\ImageLabel\Image $imageHelper        Image Helper
-     * @param \Magento\Framework\UrlInterface            $urlBuilder         URL Builder
-     * @param array                                      $components         Components
-     * @param array                                      $data               Column Data
-     */
     public function __construct(
         ContextInterface $context,
         UiComponentFactory $uiComponentFactory,
-        \Smile\ProductLabel\Model\ImageLabel\Image $imageHelper,
-        \Magento\Framework\UrlInterface $urlBuilder,
+        Image $imageHelper,
+        UrlInterface $urlBuilder,
         array $components = [],
         array $data = []
     ) {
@@ -54,19 +36,15 @@ class Thumbnail extends \Magento\Ui\Component\Listing\Columns\Column
 
     /**
      * Prepare Data Source
-     *
-     * @param array $dataSource Data source
-     *
-     * @return array
      */
-    public function prepareDataSource(array $dataSource)
+    public function prepareDataSource(array $dataSource): array
     {
         if (isset($dataSource['data']['items'])) {
             $fieldName = $this->getData('name');
             foreach ($dataSource['data']['items'] as & $item) {
-                $item[$fieldName . '_src']      = $this->imageHelper->getBaseUrl() . '/' . $item['image'];
-                $item[$fieldName . '_alt']      = $this->getAlt($item) ?: $this->imageHelper->getLabel();
-                $item[$fieldName . '_link']     = $this->urlBuilder->getUrl(
+                $item[$fieldName . '_src'] = $this->imageHelper->getBaseUrl() . '/' . $item['image'];
+                $item[$fieldName . '_alt'] = $this->getAlt($item) ?: $item['image'];
+                $item[$fieldName . '_link'] = $this->urlBuilder->getUrl(
                     'smile_productlabel/productlabel/edit',
                     ['product_label_id' => $item['product_label_id']]
                 );
@@ -78,14 +56,12 @@ class Thumbnail extends \Magento\Ui\Component\Listing\Columns\Column
     }
 
     /**
-     * @param array $row The row
-     *
-     * @return null|string
+     * Get alt
      */
-    protected function getAlt($row)
+    protected function getAlt(array $row): ?string
     {
         $altField = $this->getData('config/altField') ?: self::ALT_FIELD;
 
-        return isset($row[$altField]) ? $row[$altField] : null;
+        return $row[$altField] ?? null;
     }
 }

@@ -1,80 +1,52 @@
 <?php
-/**
- * DISCLAIMER
- * Do not edit or add to this file if you wish to upgrade this module to newer
- * versions in the future.
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
- * @copyright 2019 Smile
- * @license   Open Software License ("OSL") v. 3.0
- */
+
+declare(strict_types=1);
 
 namespace Smile\ProductLabel\Model\ResourceModel;
 
-use Magento\Framework\DB\Select;
+use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\Framework\EntityManager\EntityManager;
 use Magento\Framework\EntityManager\MetadataPool;
 use Magento\Framework\Exception\AlreadyExistsException;
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Model\AbstractModel;
 use Magento\Framework\Model\ResourceModel\Db\AbstractDb;
 use Magento\Framework\Model\ResourceModel\Db\Context;
-use Magento\Framework\Model\AbstractModel;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use Smile\ProductLabel\Api\Data\ProductLabelInterface;
 
 /**
  * Collection Resource Model Class: ProductLabel
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
  */
 class ProductLabel extends AbstractDb
 {
-    /**
-     * @var EntityManager
-     */
-    protected $entityManager;
+    protected EntityManager $entityManager;
+    protected MetadataPool $metadataPool;
+    private StoreManagerInterface $storeManager;
 
-    /**
-     * @var MetadataPool
-     */
-    protected $metadataPool;
-
-    /**
-     * @var \Magento\Store\Model\StoreManagerInterface
-     */
-    private $storeManager;
-
-    /**
-     * Resource initialization
-     *
-     * @param Context               $context        Context
-     * @param EntityManager         $entityManager  Entity Manager
-     * @param MetadataPool          $metadataPool   Metadata Pool
-     * @param StoreManagerInterface $storeManager   Store Manager
-     * @param null                  $connectionName Connection Name
-     */
     public function __construct(
         Context $context,
         EntityManager $entityManager,
         MetadataPool $metadataPool,
         StoreManagerInterface $storeManager,
-        $connectionName = null
+        Json $jsonSerializer,
+        ?string $connectionName = null
     ) {
         parent::__construct($context, $connectionName);
-
         $this->entityManager = $entityManager;
         $this->metadataPool  = $metadataPool;
         $this->storeManager  = $storeManager;
+        $this->serializer = $jsonSerializer;
     }
 
     /**
-     * @return \Magento\Framework\DB\Adapter\AdapterInterface
+     * Get connection
+     *
+     * @throws \Exception
      */
-    public function getConnection()
+    public function getConnection(): AdapterInterface
     {
         $connectionName = $this->metadataPool->getMetadata(ProductLabelInterface::class)->getEntityConnectionName();
 
@@ -84,11 +56,9 @@ class ProductLabel extends AbstractDb
     /**
      * Save Product Label
      *
-     * @param AbstractModel $object Product Label
-     *
-     * @return $this
+     * @throws \Exception
      */
-    public function save(AbstractModel $object)
+    public function save(AbstractModel $object): self
     {
         $this->entityManager->save($object);
 
@@ -98,11 +68,9 @@ class ProductLabel extends AbstractDb
     /**
      * Delete Product Label
      *
-     * @param AbstractModel $object Product Label
-     *
-     * @return $this
+     * @throws \Exception
      */
-    public function delete(AbstractModel $object)
+    public function delete(AbstractModel $object): self
     {
         $this->entityManager->delete($object);
 
@@ -111,24 +79,15 @@ class ProductLabel extends AbstractDb
 
     /**
      * Persist relation between a given product label and his stores.
-     * @SuppressWarnings(PHPMD.ElseExpression)
      *
-     * @param \Magento\Framework\Model\AbstractModel $object The rule
-     *
-     * @return \Magento\Framework\Model\AbstractModel
-     * @throws \Magento\Framework\Exception\LocalizedException
+     * @throws LocalizedException
      */
-    public function saveStoreRelation(\Magento\Framework\Model\AbstractModel $object)
+    public function saveStoreRelation(AbstractModel $object): AbstractModel
     {
         $oldStores = $this->getStoreIds($object);
-        if (strpos(serialize($object->getStores()), ',') !== false) {
-            $newStores = explode(',', (string) $object->getStores());
-        } else {
-            $newStores = $object->getStores();
-        }
+        $newStores = $object->getStores();
 
         $this->checkUnicity($object, $newStores);
-
         $table = $this->getTable(ProductLabelInterface::STORE_TABLE_NAME);
 
         $delete = array_diff($oldStores, $newStores);
@@ -159,12 +118,9 @@ class ProductLabel extends AbstractDb
     /**
      * Retrieve store ids associated to a given product label.
      *
-     * @param \Magento\Framework\Model\AbstractModel $object The product label
-     *
-     * @return array
-     * @throws \Magento\Framework\Exception\LocalizedException
+     * @throws LocalizedException
      */
-    public function getStoreIds(\Magento\Framework\Model\AbstractModel $object)
+    public function getStoreIds(AbstractModel $object): array
     {
         $connection = $this->getConnection();
 
@@ -181,15 +137,11 @@ class ProductLabel extends AbstractDb
     }
 
     /**
-     * @SuppressWarnings(PHPMD.CamelCaseMethodName)
-     * {@inheritDoc}
+     * @inheritdoc
      */
     protected function _construct()
     {
-        $this->_init(
-            ProductLabelInterface::TABLE_NAME,
-            ProductLabelInterface::PRODUCTLABEL_ID
-        );
+        $this->_init(ProductLabelInterface::TABLE_NAME, ProductLabelInterface::PRODUCTLABEL_ID);
     }
 
     /**
@@ -197,14 +149,9 @@ class ProductLabel extends AbstractDb
      * Unique constraint is : product_label_id / attribute_id / option_id / store_id
      * A product label can also not be created for store 0 (all store views) if other exists for specific stores.
      *
-     * @param \Magento\Framework\Model\AbstractModel $object The product label
-     * @param array                                  $stores The stores to be associated with
-     *
-     * @return bool
-     *
-     * @throws \Magento\Framework\Exception\AlreadyExistsException
+     * @throws AlreadyExistsException|LocalizedException
      */
-    private function checkUnicity(\Magento\Framework\Model\AbstractModel $object, array $stores)
+    private function checkUnicity(AbstractModel $object, array $stores): bool
     {
         $isDefaultStore = $this->storeManager->isSingleStoreMode()
             || array_search(Store::DEFAULT_STORE_ID, $stores) !== false;
@@ -220,8 +167,14 @@ class ProductLabel extends AbstractDb
                 'pl.' . $this->getIdFieldName() . ' = pls.' . $this->getIdFieldName(),
                 [ProductLabelInterface::STORE_ID]
             )
-            ->where('pl.' . ProductLabelInterface::ATTRIBUTE_ID . ' = ?  ', $object->getData(ProductLabelInterface::ATTRIBUTE_ID))
-            ->where('pl.' . ProductLabelInterface::OPTION_ID . ' = ?  ', $object->getData(ProductLabelInterface::OPTION_ID));
+            ->where(
+                'pl.' . ProductLabelInterface::ATTRIBUTE_ID . ' = ?  ',
+                $object->getData(ProductLabelInterface::ATTRIBUTE_ID)
+            )
+            ->where(
+                'pl.' . ProductLabelInterface::OPTION_ID . ' = ?  ',
+                $object->getData(ProductLabelInterface::OPTION_ID)
+            );
 
         if (!$isDefaultStore) {
             $select->where('pls.store_id IN (?)', $stores);
@@ -231,8 +184,9 @@ class ProductLabel extends AbstractDb
             $select->where('pl.' . $this->getIdFieldName() . ' <> ?', $object->getId());
         }
 
-        if ($row = $this->getConnection()->fetchRow($select)) {
-            $error = new \Magento\Framework\Phrase(
+        $row = $this->getConnection()->fetchRow($select);
+        if ($row) {
+            $error = __(
                 'Label for attribute %1, option %2, and store %3  already exist.',
                 [
                     $object->getData(ProductLabelInterface::ATTRIBUTE_ID),
