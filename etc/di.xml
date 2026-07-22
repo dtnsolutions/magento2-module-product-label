@@ -1,18 +1,4 @@
 <?xml version="1.0"?>
-<!--
-/**
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade this module to newer
- * versions in the future.
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
- * @copyright 2019 Smile
- * @license   Open Software License ("OSL") v. 3.0
- */
--->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
 
     <preference for="Smile\ProductLabel\Api\Data\ProductLabelSearchResultsInterface" type="Magento\Framework\Api\SearchResults" />
@@ -93,10 +79,10 @@
 
     <type name="Smile\ProductLabel\Controller\Adminhtml\ImageLabel\Image">
         <arguments>
-            <argument name="imageUploader" xsi:type="object">Smile\ProductLabel\ProductLabelImageUpload</argument>
+            <argument name="imageUploader" xsi:type="object">Smile\ProductLabel\Model\ProductLabelImageUpload</argument>
         </arguments>
     </type>
-    <virtualType name="Smile\ProductLabel\ProductLabelImageUpload" type="Magento\Catalog\Model\ImageUploader">
+    <virtualType name="Smile\ProductLabel\Model\ProductLabelImageUpload" type="Magento\Catalog\Model\ImageUploader">
         <arguments>
             <argument name="baseTmpPath" xsi:type="string">smile_productlabel/tmp/imagelabel</argument>
             <argument name="basePath" xsi:type="string">smile_productlabel/imagelabel</argument>
@@ -139,5 +125,10 @@
         </arguments>
     </type>
 
+    <type name="Smile\ProductLabel\Model\ProductLabel">
+        <arguments>
+            <argument name="imageUploader" xsi:type="object">Smile\ProductLabel\Model\ProductLabelImageUpload</argument>
+        </arguments>
+    </type>
 </config>
 

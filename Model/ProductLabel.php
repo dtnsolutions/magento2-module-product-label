@@ -1,98 +1,77 @@
 <?php
-/**
- * DISCLAIMER
- * Do not edit or add to this file if you wish to upgrade this module to newer
- * versions in the future.
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
- * @copyright 2019 Smile
- * @license   Open Software License ("OSL") v. 3.0
- */
+
+declare(strict_types=1);
 
 namespace Smile\ProductLabel\Model;
 
+use Magento\Catalog\Model\ImageUploader;
+use Magento\Framework\App\Filesystem\DirectoryList;
+use Magento\Framework\Data\Collection\AbstractDb;
+use Magento\Framework\Exception\FileSystemException;
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Filesystem;
+use Magento\Framework\Filesystem\Directory\WriteInterface;
 use Magento\Framework\Model\AbstractModel;
-use Magento\Framework\DataObject\IdentityInterface;
+use Magento\Framework\Model\Context;
+use Magento\Framework\Model\ResourceModel\AbstractResource;
+use Magento\Framework\Registry;
+use Magento\Framework\UrlInterface;
+use Magento\Store\Model\Store;
+use Magento\Store\Model\StoreManagerInterface;
 use Smile\ProductLabel\Api\Data\ProductLabelInterface;
+use Smile\ProductLabel\Model\ImageLabel\FileInfo;
 use Smile\ProductLabel\Model\ResourceModel\ProductLabel as ProductLabelResource;
 
 /**
  * Product Label Model
  *
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
- * @SuppressWarnings(PHPMD.CamelCasePropertyName)
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
  */
-class ProductLabel extends AbstractModel implements IdentityInterface, ProductLabelInterface
+class ProductLabel extends AbstractModel implements ProductLabelInterface
 {
-    /**
-     * @var string
-     */
-    const CACHE_TAG = 'smile_productlabel';
+    public const CACHE_TAG = 'smile_productlabel';
 
-    /**
-     * Store manager
-     *
-     * @var \Magento\Store\Model\StoreManagerInterface
-     */
-    protected $storeManager;
-
-    /**
-     * @var \Magento\Catalog\Model\ImageUploader
-     */
-    private $imageUploader;
-
-    /**
-     * @var \Smile\ProductLabel\Model\ImageLabel\FileInfo
-     */
-    protected $fileInfo;
+    protected StoreManagerInterface $storeManager;
+    private ?ImageUploader $imageUploader;
+    protected FileInfo $fileInfo;
 
     /**
      * Media directory object (writable).
-     *
-     * @var \Magento\Framework\Filesystem\Directory\WriteInterface
      */
-    protected $mediaDirectory;
+    protected WriteInterface $mediaDirectory;
 
     /**
-     * @var string
+     * @var string|array|bool
      */
     protected $_cacheTag = self::CACHE_TAG;
 
     /**
      * ProductLabel constructor.
      *
-     * @param \Magento\Framework\Model\Context                             $context            Context
-     * @param \Magento\Framework\Registry                                  $registry           Registry
-     * @param \Magento\Store\Model\StoreManagerInterface                   $storeManager       Store Manager
-     * @param \Magento\Framework\Filesystem                                $filesystem         FileSystem Helper
-     * @param \Magento\Framework\Model\ResourceModel\AbstractResource|null $resource           Resource
-     * @param \Magento\Framework\Data\Collection\AbstractDb|null           $resourceCollection Resource Collection
-     * @param array                                                        $data               Object Data
+     * @throws FileSystemException
      */
     public function __construct(
-        \Magento\Framework\Model\Context $context,
-        \Magento\Framework\Registry $registry,
-        \Magento\Store\Model\StoreManagerInterface $storeManager,
-        \Magento\Framework\Filesystem $filesystem,
-        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
-        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
-        array $data = []
+        Context               $context,
+        Registry              $registry,
+        StoreManagerInterface $storeManager,
+        Filesystem            $filesystem,
+        ImageUploader         $imageUploader,
+        ?AbstractResource     $resource = null,
+        ?AbstractDb           $resourceCollection = null,
+        array                 $data = []
     ) {
-        $this->storeManager   = $storeManager;
-        $this->mediaDirectory = $filesystem->getDirectoryWrite(\Magento\Framework\App\Filesystem\DirectoryList::MEDIA);
-        parent::__construct(
-            $context,
-            $registry,
-            $resource,
-            $resourceCollection,
-            $data
-        );
+        $this->storeManager = $storeManager;
+        $this->mediaDirectory = $filesystem->getDirectoryWrite(DirectoryList::MEDIA);
+        $this->imageUploader = $imageUploader;
+        parent::__construct($context, $registry, $resource, $resourceCollection, $data);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    protected function _construct()
+    {
+        $this->_init(ProductLabelResource::class);
     }
 
     /**
@@ -100,41 +79,40 @@ class ProductLabel extends AbstractModel implements IdentityInterface, ProductLa
      *
      * @return string[]
      */
-    public function getIdentities()
+    public function getIdentities(): array
     {
-        return [self::CACHE_TAG . '_' . $this->getId(), self::CACHE_TAG ];
+        return [self::CACHE_TAG . '_' . $this->getId(), self::CACHE_TAG];
     }
 
     /**
      * Get field: is_active.
-     *
-     * @return bool
      */
-    public function isActive()
+    public function isActive(): bool
     {
         return (bool) $this->getData(self::IS_ACTIVE);
     }
 
     /**
      * Get field: product_label_id.
-     *
-     * @return int|null
      */
-    public function getProductLabelId()
+    public function getProductLabelId(): ?int
     {
-        return $this->getId();
+        return (int) $this->getId();
     }
 
     /**
      * Get field: store_id.
+     *
      * @return int[]
      */
-    public function getStores()
+    public function getStores(): array
     {
         $stores = $this->hasData('stores') ? $this->getData('stores') : $this->getData('store_id');
 
         if (is_numeric($stores)) {
             $stores = [$stores];
+        } elseif (is_string($stores)) {
+            $stores = explode(',', $stores);
         }
 
         return $stores ?? [];
@@ -142,18 +120,14 @@ class ProductLabel extends AbstractModel implements IdentityInterface, ProductLa
 
     /**
      * Get field: name.
-     *
-     * @return string
      */
-    public function getName()
+    public function getName(): string
     {
-        return (int) $this->getData(self::PRODUCTLABEL_NAME);
+        return (string) $this->getData(self::PRODUCTLABEL_NAME);
     }
 
     /**
      * Get field: attribute_id
-     *
-     * @return int
      */
     public function getAttributeId(): int
     {
@@ -162,199 +136,146 @@ class ProductLabel extends AbstractModel implements IdentityInterface, ProductLa
 
     /**
      * Get field: option_id
-     *
-     * @return int
      */
-    public function getOptionId(): int
+    public function getOptionId(): string
     {
-        return (int) $this->getData(self::OPTION_ID);
+        return (string) $this->getData(self::OPTION_ID);
     }
 
     /**
      * Get field: image
-     *
-     * @return string
      */
-    public function getProductLabelImage()
+    public function getProductLabelImage(): string
     {
         return (string) $this->getData(self::PRODUCTLABEL_IMAGE);
     }
 
     /**
      * Get field: position_category_list
-     *
-     * @return string
      */
-    public function getPositionCategoryList()
+    public function getPositionCategoryList(): string
     {
         return (string) $this->getData(self::PRODUCTLABEL_POSITION_CATEGORY_LIST);
     }
 
     /**
      * Get field: position_product_view
-     *
-     * @return string
      */
-    public function getPositionProductView()
+    public function getPositionProductView(): string
     {
         return (string) $this->getData(self::PRODUCTLABEL_POSITION_PRODUCT_VIEW);
     }
 
     /**
      * Get field: display_on
-     *
-     * @return array
      */
-    public function getDisplayOn()
+    public function getDisplayOn(): array
     {
         $values = $this->getData(self::PRODUCTLABEL_DISPLAY_ON);
         if (is_numeric($values)) {
             $values = [$values];
         }
 
-        return $values ? $values : [];
+        return $values ?: [];
     }
 
-
     /**
-     * Get field: alt.
-     *
-     * @return string
+     * Get Alternative caption
      */
-    public function getAlt()
+    public function getAlt(): string
     {
-        return (int) $this->getData(self::PRODUCTLABEL_ALT);
+        return (string) $this->getData(self::PRODUCTLABEL_ALT);
     }
 
     /**
-     * Set field: is_active
-     *
-     * @param boolean $status The status
-     *
-     * @return $this
+     * Set product label status
      */
-    public function setIsActive(bool $status)
+    public function setIsActive(bool $status): ProductLabelInterface
     {
         return $this->setData(self::IS_ACTIVE, (bool) $status);
     }
 
     /**
-     * Set field: product_label_id.
-     *
-     * @param int $value Field value
-     *
-     * @return $this
+     * Set product label Id
      */
-    public function setProductLabelId($value)
+    public function setProductLabelId(int $value): ProductLabelInterface
     {
         return $this->setId((int) $value);
     }
 
     /**
-     * Set field: name.
-     *
-     * @param string $value Field value
-     *
-     * @return $this
+     * Set Name
      */
-    public function setName($value)
+    public function setName(string $value): ProductLabelInterface
     {
         return $this->setData(self::PRODUCTLABEL_NAME, (string) $value);
     }
 
     /**
-     * Set field: attribute_id.
-     *
-     * @param int $value Field value
-     *
-     * @return $this
+     * Set attribute Id.
      */
-    public function setAttributeId(int $value)
+    public function setAttributeId(int $value): ProductLabelInterface
     {
         return $this->setData(self::ATTRIBUTE_ID, $value);
     }
 
     /**
-     * Set field: option_id.
-     *
-     * @param int $value Field value
-     *
-     * @return $this
+     * Set option Id.
      */
-    public function setOptionId(int $value)
+    public function setOptionId(string $value): ProductLabelInterface
     {
         return $this->setData(self::OPTION_ID, $value);
     }
 
     /**
-     * Set field: image.
-     *
-     * @param string $value Field value
-     *
-     * @return $this
+     * Set Image.
      */
-    public function setImage($value)
+    public function setImage(string $value): ProductLabelInterface
     {
         return $this->setData(self::PRODUCTLABEL_IMAGE, $value);
     }
 
     /**
-     * Set field: position_category_list.
-     *
-     * @param string $value Field value
-     *
-     * @return $this
+     * Set position_category_list.
      */
-    public function setPositionCategoryList($value)
+    public function setPositionCategoryList(int $value): ProductLabelInterface
     {
         return $this->setData(self::PRODUCTLABEL_POSITION_CATEGORY_LIST, $value);
     }
 
     /**
      * Set field: position_product_view.
-     *
-     * @param string $value Field value
-     *
-     * @return $this
      */
-    public function setPositionProductView($value)
+    public function setPositionProductView(int $value): ProductLabelInterface
     {
         return $this->setData(self::PRODUCTLABEL_IMAGE, $value);
     }
 
     /**
      * Set field: display_on.
-     *
-     * @param array $value Field value
-     *
-     * @return $this
      */
-    public function setDisplayOn($value)
+    public function setDisplayOn(array $value): ProductLabelInterface
     {
         return $this->setData(self::PRODUCTLABEL_DISPLAY_ON, $value);
     }
 
     /**
-     * Set field: alt.
-     *
-     * @param string $value Field value
-     *
-     * @return $this
+     * Set Alternative Caption
      */
-    public function setAlt($value)
+    public function setAlt(string $value): ProductLabelInterface
     {
-        return $this->setData(self::PRODUCTLABEL_ALT, (string) $value);
+        return $this->setData(self::PRODUCTLABEL_ALT, $value);
     }
 
     /**
-     * @param array $values Form values
+     * Populate from array
      */
-    public function populateFromArray(array $values)
+    public function populateFromArray(array $values): void
     {
         $this->setData(self::IS_ACTIVE, (bool) $values['is_active']);
         $this->setData(self::PRODUCTLABEL_NAME, (string) $values['name']);
         $this->setData(self::ATTRIBUTE_ID, (int) $values['attribute_id']);
-        $this->setData(self::OPTION_ID, (int) $values['option_id']);
+        $this->setData(self::OPTION_ID, (string) $values['option_id']);
         $this->setData(self::PRODUCTLABEL_IMAGE, $values['image'][0]['name'] ?? '');
         $this->setData(self::PRODUCTLABEL_POSITION_CATEGORY_LIST, (string) $values['position_category_list']);
         $this->setData(self::PRODUCTLABEL_POSITION_PRODUCT_VIEW, (string) $values['position_product_view']);
@@ -364,71 +285,42 @@ class ProductLabel extends AbstractModel implements IdentityInterface, ProductLa
     }
 
     /**
+     * Get image url
+     *
      * @return bool|string
-     * @throws \Magento\Framework\Exception\LocalizedException
+     * @throws LocalizedException
      */
     public function getImageUrl()
     {
         $url   = false;
         $image = $this->getData('image');
-        if ($image) {
-            if (is_string($image)) {
-                $store = $this->storeManager->getStore();
-
-                $isRelativeUrl = substr($image, 0, 1) === '/';
-
-                $mediaBaseUrl = $store->getBaseUrl(
-                    \Magento\Framework\UrlInterface::URL_TYPE_MEDIA
-                );
-
-                $url = $mediaBaseUrl
-                    . ltrim(\Smile\ProductLabel\Model\ImageLabel\FileInfo::ENTITY_MEDIA_PATH, '/')
-                    . '/'
-                    . $image;
-
-                if ($isRelativeUrl) {
-                    $url = $image;
-                }
-            }
+        if ($image && is_string($image)) {
+            /** @var Store $store */
+            $store = $this->storeManager->getStore();
+            $isRelativeUrl = substr($image, 0, 1) === '/';
+            $mediaBaseUrl = $store->getBaseUrl(UrlInterface::URL_TYPE_MEDIA);
+            $url = $isRelativeUrl
+                ? $image
+                : $mediaBaseUrl . ltrim(FileInfo::ENTITY_MEDIA_PATH, '/') . '/' . $image;
         }
 
         return $url;
     }
 
     /**
-     * @return $this
+     * After save
+     *
+     * @throws LocalizedException
      */
-    public function afterSave()
+    public function afterSave(): self
     {
         $imageName = $this->getData('image');
-        $path      = $this->getImageUploader()->getFilePath($this->imageUploader->getBaseTmpPath(), $imageName);
+        $path = $this->imageUploader->getFilePath($this->imageUploader->getBaseTmpPath(), $imageName);
 
         if ($this->mediaDirectory->isExist($path)) {
-            $this->getImageUploader()->moveFileFromTmp($imageName);
+            $this->imageUploader->moveFileFromTmp($imageName, true);
         }
 
         return parent::afterSave();
-    }
-
-    /**
-     * @SuppressWarnings(PHPMD.CamelCaseMethodName)
-     * {@inheritdoc}
-     */
-    protected function _construct()
-    {
-        $this->_init(ProductLabelResource::class);
-    }
-
-    /**
-     * @return \Magento\Catalog\Model\ImageUploader
-     */
-    private function getImageUploader()
-    {
-        if ($this->imageUploader === null) {
-            $this->imageUploader = \Magento\Framework\App\ObjectManager::getInstance()
-                ->get(\Smile\ProductLabel\ProductLabelImageUpload::class);
-        }
-
-        return $this->imageUploader;
     }
 }

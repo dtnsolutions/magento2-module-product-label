@@ -1,15 +1,6 @@
 <?php
-/**
- * DISCLAIMER
- * Do not edit or add to this file if you wish to upgrade this module to newer
- * versions in the future.
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
- * @copyright 2019 Smile
- * @license   Open Software License ("OSL") v. 3.0
- */
+
+declare(strict_types=1);
 
 namespace Smile\ProductLabel\Model\ProductLabel;
 
@@ -18,56 +9,36 @@ use Magento\Framework\EntityManager\Operation\ExtensionInterface;
 use Smile\ProductLabel\Helper\Data as DataHelper;
 
 /**
- * Class ReadHandler
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <hoelr@smile.fr>
- * @copyright 2019 Smile
+ * Class ReadHandler Locator
  */
 class ReadHandler implements ExtensionInterface
 {
+    protected DataHelper $dataHelper;
 
-    /**
-     * @var DataHelper
-     */
-    protected $dataHelper;
-
-    /**
-     * ReadHandler constructor.
-     *
-     * @param DataHelper $dataHelper Helper
-     */
     public function __construct(DataHelper $dataHelper)
     {
         $this->dataHelper = $dataHelper;
     }
 
     /**
-     * Perform action on relation/extension attribute
-     *
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
-     *
-     * @param ProductInterface $product   Catalog Product Object
-     * @param array            $arguments Array of Arguments
-     *
-     * @return ProductInterface|object
+     * @inheritDoc
      */
-    public function execute($product, $arguments = [])
+    public function execute($entity, $arguments = [])
     {
-        /** @var ProductInterface $product */
-        $extension = $product->getExtensionAttributes();
+        /** @var ProductInterface $entity */
+        $extension = $entity->getExtensionAttributes();
 
+        // @phpstan-ignore-next-line PHPStan can't deal with generated class
         if ($extension->getProductLabels() !== null) {
-            return $product;
+            return $entity;
         }
 
-        $productLabels = $this->dataHelper->getProductPLabels($product);
-
+        $dataHelper = $this->dataHelper;
+        $productLabels = $dataHelper->getProductLabels($entity);
+        // @phpstan-ignore-next-line PHPStan can't deal with generated class
         $extension->setProductLabels($productLabels);
+        $entity->setExtensionAttributes($extension);
 
-        $product->setExtensionAttributes($extension);
-
-        return $product;
+        return $entity;
     }
 }

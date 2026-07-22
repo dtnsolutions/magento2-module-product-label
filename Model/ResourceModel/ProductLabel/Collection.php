@@ -1,63 +1,49 @@
 <?php
-/**
- * DISCLAIMER
- * Do not edit or add to this file if you wish to upgrade this module to newer
- * versions in the future.
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
- * @copyright 2019 Smile
- * @license   Open Software License ("OSL") v. 3.0
- */
+
+declare(strict_types=1);
 
 namespace Smile\ProductLabel\Model\ResourceModel\ProductLabel;
 
+use Magento\Catalog\Api\Data\ProductAttributeInterface;
+use Magento\Framework\DB\Select;
+use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
+use Magento\Store\Model\Store;
 use Smile\ProductLabel\Api\Data\ProductLabelInterface;
+use Smile\ProductLabel\Model\ProductLabel;
 
 /**
  * Product Label Collection
- *
- * @SuppressWarnings(PHPMD.CamelCasePropertyName)
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
  */
-class Collection extends \Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection
+class Collection extends AbstractCollection
 {
     /**
-     * @var string
+     * @inheritdoc
      */
     protected $_idFieldName = ProductLabelInterface::PRODUCTLABEL_ID;
 
-    /**
-     * @var int[]
-     */
-    private $storeIds = [];
+    /** @var int[] */
+    private array $storeIds = [];
 
     /**
      * Get store ids applied to current collection.
      *
      * @return int[]
      */
-    public function getStoreIds()
+    public function getStoreIds(): array
     {
         return $this->storeIds;
     }
 
     /**
      * Retrieve all distinct attribute ids of current collection.
-     *
-     * @return array
      */
-    public function getAllAttributeIds()
+    public function getAllAttributeIds(): array
     {
         $optionIdsSelect = clone $this->getSelect();
-        $optionIdsSelect->reset(\Magento\Framework\DB\Select::ORDER);
-        $optionIdsSelect->reset(\Magento\Framework\DB\Select::LIMIT_COUNT);
-        $optionIdsSelect->reset(\Magento\Framework\DB\Select::LIMIT_OFFSET);
-        $optionIdsSelect->reset(\Magento\Framework\DB\Select::COLUMNS);
+        $optionIdsSelect->reset(Select::ORDER);
+        $optionIdsSelect->reset(Select::LIMIT_COUNT);
+        $optionIdsSelect->reset(Select::LIMIT_OFFSET);
+        $optionIdsSelect->reset(Select::COLUMNS);
         $optionIdsSelect->distinct(true)->columns(ProductLabelInterface::ATTRIBUTE_ID, 'main_table');
 
         return $this->getConnection()->fetchCol($optionIdsSelect, $this->_bindParams);
@@ -65,45 +51,38 @@ class Collection extends \Magento\Framework\Model\ResourceModel\Db\Collection\Ab
 
     /**
      * Retrieve all distinct options ids of current collection.
-     *
-     * @return array
      */
-    public function getAllOptionIds()
+    public function getAllOptionIds(): array
     {
         $optionIdsSelect = clone $this->getSelect();
-        $optionIdsSelect->reset(\Magento\Framework\DB\Select::ORDER);
-        $optionIdsSelect->reset(\Magento\Framework\DB\Select::LIMIT_COUNT);
-        $optionIdsSelect->reset(\Magento\Framework\DB\Select::LIMIT_OFFSET);
-        $optionIdsSelect->reset(\Magento\Framework\DB\Select::COLUMNS);
+        $optionIdsSelect->reset(Select::ORDER);
+        $optionIdsSelect->reset(Select::LIMIT_COUNT);
+        $optionIdsSelect->reset(Select::LIMIT_OFFSET);
+        $optionIdsSelect->reset(Select::COLUMNS);
         $optionIdsSelect->distinct(true)->columns(ProductLabelInterface::OPTION_ID, 'main_table');
 
         return $this->getConnection()->fetchCol($optionIdsSelect, $this->_bindParams);
     }
 
     /**
-     * Filter productlabel collection for a given attribute.
-     *
-     * @param \Magento\Catalog\Api\Data\ProductAttributeInterface $attribute The attribute
-     *
-     * @return $this
+     * Filter productLabel collection for a given attribute.
      */
-    public function addAttributeFilter(\Magento\Catalog\Api\Data\ProductAttributeInterface $attribute)
+    public function addAttributeFilter(ProductAttributeInterface $attribute): self
     {
         if ($attribute->getAttributeId()) {
-            $this->addFieldToFilter(ProductLabelInterface::ATTRIBUTE_ID, (int) $attribute->getAttributeId());
+            $this->addFieldToFilter(ProductLabelInterface::ATTRIBUTE_ID, (string) $attribute->getAttributeId());
         }
 
         return $this;
     }
 
     /**
-     * Filter productlabel collection for a given list of attribute set ids.
+     * Filter productLabel collection for a given list of attribute set ids.
      *
      * @param array $attributeSetIds List of attribute set ids
-     *
      * @return $this
      */
-    public function addAttributeSetIdFilter($attributeSetIds)
+    public function addAttributeSetIdFilter(array $attributeSetIds): self
     {
         if (!is_array($attributeSetIds)) {
             $attributeSetIds = [$attributeSetIds];
@@ -120,7 +99,7 @@ class Collection extends \Magento\Framework\Model\ResourceModel\Db\Collection\Ab
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function addFieldToFilter($field, $condition = null)
     {
@@ -134,15 +113,14 @@ class Collection extends \Magento\Framework\Model\ResourceModel\Db\Collection\Ab
     /**
      * Perform adding filter by store
      *
-     * @param int|array|\Magento\Store\Model\Store $store The store
-     *
+     * @param int|array|Store $store The store
      * @return $this
      */
     public function addStoreFilter($store)
     {
-        $defaultStoreId = \Magento\Store\Model\Store::DEFAULT_STORE_ID;
+        $defaultStoreId = Store::DEFAULT_STORE_ID;
 
-        if ($store instanceof \Magento\Store\Model\Store) {
+        if ($store instanceof Store) {
             $store = [$store->getId()];
         }
 
@@ -157,30 +135,27 @@ class Collection extends \Magento\Framework\Model\ResourceModel\Db\Collection\Ab
         }
 
         $this->storeIds = $store;
+
+        // @phpstan-ignore-next-line Native method has bad type
         $this->addFilter('store', ['in' => $store], 'public');
 
         return $this;
     }
 
     /**
-     * @SuppressWarnings(PHPMD.CamelCaseMethodName)
-     * {@inheritDoc}
+     * @inheritdoc
      */
     protected function _construct()
     {
-        $this->_init(
-            'Smile\ProductLabel\Model\ProductLabel',
-            'Smile\ProductLabel\Model\ResourceModel\ProductLabel'
-        );
+        $this->_init(ProductLabel::class, \Smile\ProductLabel\Model\ResourceModel\ProductLabel::class);
 
         /* @see self::_renderFiltersBefore() */
-        $this->_map['fields']['store']        = ProductLabelInterface::STORE_TABLE_NAME . '.store_id';
+        $this->_map['fields']['store']        = $this->getTable(ProductLabelInterface::STORE_TABLE_NAME) . '.store_id';
         $this->_map['fields']['attribute_id'] = 'main_table.attribute_id';
     }
 
     /**
-     * @SuppressWarnings(PHPMD.CamelCaseMethodName)
-     * {@inheritdoc}
+     * @inheritdoc
      */
     protected function _afterLoad()
     {
@@ -215,9 +190,7 @@ class Collection extends \Magento\Framework\Model\ResourceModel\Db\Collection\Ab
     }
 
     /**
-     * @SuppressWarnings(PHPMD.CamelCaseMethodName)
-     *
-     * {@inheritdoc}
+     * @inheritdoc
      */
     protected function _renderFiltersBefore()
     {

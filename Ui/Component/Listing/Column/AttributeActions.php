@@ -1,59 +1,29 @@
 <?php
-/**
- * DISCLAIMER
- * Do not edit or add to this file if you wish to upgrade this module to newer
- * versions in the future.
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
- * @copyright 2019 Smile
- * @license   Open Software License ("OSL") v. 3.0
- */
+
+declare(strict_types=1);
 
 namespace Smile\ProductLabel\Ui\Component\Listing\Column;
 
+use Magento\Framework\Escaper;
+use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
-use Magento\Framework\UrlInterface;
-use Magento\Framework\Escaper;
 
 /**
  * Class Product Label Actions
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
  */
 class AttributeActions extends Column
 {
     /**
      * Url path
      */
-    const URL_PATH_EDIT = 'smile_productlabel/productlabel/edit';
-    const URL_PATH_DELETE = 'smile_productlabel/productlabel/delete';
+    protected const URL_PATH_EDIT = 'smile_productlabel/productlabel/edit';
+    protected const URL_PATH_DELETE = 'smile_productlabel/productlabel/delete';
 
-    /**
-     * @var UrlInterface
-     */
-    protected $urlBuilder;
+    protected UrlInterface $urlBuilder;
+    protected Escaper $escaper;
 
-    /**
-     * @var Escaper
-     */
-    protected $escaper;
-
-    /**
-     * AttributeActions constructor.
-     *
-     * @param ContextInterface   $context            Context
-     * @param UiComponentFactory $uiComponentFactory UI Component Factory
-     * @param UrlInterface       $urlBuilder         URL Builder
-     * @param Escaper            $escaper            Escaper
-     * @param array              $components         Components
-     * @param array              $data               Column Data
-     */
     public function __construct(
         ContextInterface $context,
         UiComponentFactory $uiComponentFactory,
@@ -62,16 +32,15 @@ class AttributeActions extends Column
         array $components = [],
         array $data = []
     ) {
+        parent::__construct($context, $uiComponentFactory, $components, $data);
         $this->urlBuilder = $urlBuilder;
         $this->escaper    = $escaper;
-
-        parent::__construct($context, $uiComponentFactory, $components, $data);
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
-    public function prepareDataSource(array $dataSource)
+    public function prepareDataSource(array $dataSource): array
     {
         if (isset($dataSource['data']['items'])) {
             foreach ($dataSource['data']['items'] as & $item) {

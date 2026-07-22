@@ -1,20 +1,30 @@
 {
     "name": "smile/module-product-label",
     "type": "magento2-module",
-    "description": "Extension of Magento2 to be able to contribute images associated to product attribute values.",
+    "description": "Smile - Extension of Magento2 to be able to contribute images associated to product attribute values.",
     "keywords": ["magento2", "product", "label", "image"],
     "license": "OSL-3.0",
     "require-dev": {
-        "smile/magento2-smilelab-quality-suite": "^1.1.0"
+        "smile/magento2-smilelab-quality-suite": "^3.0"
     },
     "authors":[
         {
             "name": "Houda El Rhozlane",
-            "email": "houda.elrhozlane@smile.fr",
-            "homepage": "https://www.smile.eu/",
-            "role": "Developer"
+            "email": "houda.elrhozlane@smile.fr"
+        },
+        {
+            "name": "Cédric MAGREZ",
+            "email": "cedric.magrez@smile.fr"
         }
     ],
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "magento/composer-dependency-version-audit-plugin": true,
+            "magento/magento-composer-installer": false
+        },
+        "sort-packages": true
+    },
     "autoload": {
         "files": [
             "registration.php"
@@ -22,5 +32,7 @@
         "psr-4": {
             "Smile\\ProductLabel\\": ""
         }
-    }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }

@@ -1,101 +1,60 @@
 <?php
-/**
- * DISCLAIMER
- * Do not edit or add to this file if you wish to upgrade this module to newer
- * versions in the future.
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
- * @copyright 2019 Smile
- * @license   Open Software License ("OSL") v. 3.0
- */
+
+declare(strict_types=1);
 
 namespace Smile\ProductLabel\Controller\Adminhtml\ProductLabel;
 
 use Magento\Backend\App\Action;
+use Magento\Backend\App\Action\Context;
+use Magento\Backend\Model\View\Result\Page;
+use Magento\Framework\App\Action\HttpPostActionInterface;
+use Magento\Framework\App\Request\DataPersistorInterface;
+use Magento\Framework\Controller\Result\ForwardFactory;
+use Magento\Framework\Controller\ResultFactory;
+use Magento\Framework\Registry;
+use Magento\Framework\View\Result\Layout;
+use Magento\Framework\View\Result\PageFactory;
+use Magento\Ui\Component\MassAction\Filter;
+use Smile\ProductLabel\Api\Data\ProductLabelInterfaceFactory;
+use Smile\ProductLabel\Api\ProductLabelRepositoryInterface;
 use Smile\ProductLabel\Model\ResourceModel\ProductLabel\CollectionFactory;
 
 /**
  * Reload controller for product label edition : used to refresh the form after attribute_id is chosen.
- *
- * @category  Smile
- * @package   Smile\ProductLabel
- * @author    Houda EL RHOZLANE <houda.elrhozlane@smile.fr>
  */
-class Reload extends Action
+class Reload extends Action implements HttpPostActionInterface
 {
     /**
      * Authorization level of a basic admin session
      *
      * @see _isAllowed()
      */
-    const ADMIN_RESOURCE = 'Smile_ProductLabel::manage';
+    public const ADMIN_RESOURCE = 'Smile_ProductLabel::manage';
 
-    /**
-     * @var \Magento\Framework\View\Result\PageFactory|null
-     */
-    protected $resultPageFactory = null;
+    protected ?PageFactory $resultPageFactory = null;
+    protected Registry $coreRegistry;
+    protected DataPersistorInterface $dataPersistor;
+    protected Filter $filter;
+    protected CollectionFactory $collectionFactory;
+    protected ProductLabelRepositoryInterface $productLabelRepository;
+    protected ForwardFactory $resultForwardFactory;
+    protected ProductLabelInterfaceFactory $productLabelFactory;
 
-    /**
-     * Core registry
-     *
-     * @var \Magento\Framework\Registry
-     */
-    protected $coreRegistry;
-
-    /**
-     * @var \Magento\Framework\App\Request\DataPersistorInterface
-     */
-    protected $dataPersistor;
-
-    /**
-     * @var \Magento\Ui\Component\MassAction\Filter
-     */
-    protected $filter;
-
-    /**
-     * @var \Smile\ProductLabel\Model\ResourceModel\ProductLabel\CollectionFactory
-     */
-    protected $collectionFactory;
-
-    /**
-     * @var \Smile\ProductLabel\Api\ProductLabelRepositoryInterface
-     */
-    protected $productLabelRepository;
-
-    /**
-     * Product Label Factory
-     *
-     * @var \Smile\ProductLabel\Api\Data\ProductLabelInterfaceFactory
-     */
-    protected $productLabelFactory;
-
-    /**
-     * Reload constructor.
-     *
-     * @param Action\Context                                            $context                UI Component context
-     * @param \Magento\Framework\View\Result\PageFactory                $resultPageFactory      Result Page Factory
-     * @param \Magento\Framework\Registry                               $coreRegistry           Core Registry
-     * @param \Magento\Framework\App\Request\DataPersistorInterface     $dataPersistor          Data Persistor
-     * @param \Magento\Ui\Component\MassAction\Filter                   $filter                 Action Filter
-     * @param CollectionFactory                                         $collectionFactory      Product Label Collection Factory
-     * @param \Smile\ProductLabel\Api\ProductLabelRepositoryInterface   $productLabelRepository Product Label Repository
-     * @param \Smile\ProductLabel\Api\Data\ProductLabelInterfaceFactory $productLabelFactory    Product Label Factory
-     */
     public function __construct(
-        \Magento\Backend\App\Action\Context $context,
-        \Magento\Framework\View\Result\PageFactory $resultPageFactory,
-        \Magento\Framework\Registry $coreRegistry,
-        \Magento\Framework\App\Request\DataPersistorInterface $dataPersistor,
-        \Magento\Ui\Component\MassAction\Filter $filter,
-        \Smile\ProductLabel\Model\ResourceModel\ProductLabel\CollectionFactory $collectionFactory,
-        \Smile\ProductLabel\Api\ProductLabelRepositoryInterface $productLabelRepository,
-        \Smile\ProductLabel\Api\Data\ProductLabelInterfaceFactory $productLabelFactory
+        Context                         $context,
+        PageFactory                     $resultPageFactory,
+        Registry                        $coreRegistry,
+        DataPersistorInterface          $dataPersistor,
+        Filter                          $filter,
+        CollectionFactory               $collectionFactory,
+        ProductLabelRepositoryInterface $productLabelRepository,
+        ProductLabelInterfaceFactory    $productLabelFactory,
+        ForwardFactory                  $resultForwardFactory
     ) {
         parent::__construct($context);
 
         $this->resultPageFactory      = $resultPageFactory;
+        $this->resultForwardFactory   = $resultForwardFactory;
         $this->coreRegistry           = $coreRegistry;
         $this->dataPersistor          = $dataPersistor;
         $this->filter                 = $filter;
@@ -105,12 +64,12 @@ class Reload extends Action
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function execute()
     {
         if (!$this->getRequest()->getParam('set')) {
-            return $this->resultFactory->create(\Magento\Framework\Controller\ResultFactory::TYPE_FORWARD)->forward('noroute');
+            return $this->resultForwardFactory->create()->forward('noroute');
         }
 
         $identifier = $this->getRequest()->getParam('product_label_id');
@@ -123,8 +82,8 @@ class Reload extends Action
         $model->setAttributeId((int) $this->getRequest()->getParam('set'));
         $this->coreRegistry->register('current_productlabel', $model);
 
-        /** @var \Magento\Framework\View\Result\Layout $resultLayout */
-        $resultLayout = $this->resultFactory->create(\Magento\Framework\Controller\ResultFactory::TYPE_LAYOUT);
+        /** @var Layout $resultLayout */
+        $resultLayout = $this->resultFactory->create(ResultFactory::TYPE_LAYOUT);
 
         $resultLayout->getLayout()->getUpdate()->removeHandle('default');
         $resultLayout->setHeader('Content-Type', 'application/json', true);
@@ -134,15 +93,14 @@ class Reload extends Action
 
     /**
      * Create result page
-     *
-     * @return \Magento\Backend\Model\View\Result\Page
      */
-    protected function createPage()
+    protected function createPage(): Page
     {
-        /** @var \Magento\Backend\Model\View\Result\Page $resultPage */
+        /** @var Page $resultPage */
         $resultPage = $this->resultPageFactory->create();
 
-        $resultPage->setActiveMenu('Smile_ProductLabel::rule')->addBreadcrumb(__('Product Label'), __('Product Label'));
+        $resultPage->setActiveMenu('Smile_ProductLabel::rule')
+            ->addBreadcrumb((string) __('Product Label'), (string) __('Product Label'));
 
         return $resultPage;
     }
